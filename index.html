@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日文單字測驗</title>
+<style>
+  :root {
+    --navy: #1F3A5F;
+    --teal: #2C7A7B;
+    --green: #1a7f37;
+    --red: #c62828;
+    --bg: #f7f7f8;
+    --card: #ffffff;
+    --gray: #666666;
+    --border: #e2e2e2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", "Noto Sans CJK TC", sans-serif;
+    background: var(--bg);
+    color: #222;
+    padding: 20px 14px 60px;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; }
+  h1 {
+    font-size: 20px;
+    color: var(--navy);
+    text-align: center;
+    margin: 4px 0 4px;
+  }
+  .sub {
+    text-align: center;
+    color: var(--gray);
+    font-size: 13px;
+    margin-bottom: 18px;
+  }
+  .tabs {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+  .tab-btn {
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--gray);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .tab-btn.active {
+    background: var(--navy);
+    color: #fff;
+    border-color: var(--navy);
+  }
+  .card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 22px 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    margin-bottom: 16px;
+  }
+  .progress {
+    font-size: 12px;
+    color: var(--gray);
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    font-size: 12px;
+    color: var(--gray);
+    margin-bottom: 14px;
+  }
+  .stats span b { color: var(--green); }
+  .stats span.wrong b { color: var(--red); }
+  .question-label {
+    font-size: 12px;
+    color: var(--teal);
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .question-text {
+    font-size: 30px;
+    font-weight: 700;
+    text-align: center;
+    color: var(--navy);
+    margin: 6px 0 20px;
+    min-height: 44px;
+    word-break: break-word;
+  }
+  input[type=text] {
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 17px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    outline: none;
+    text-align: center;
+  }
+  input[type=text]:focus { border-color: var(--teal); }
+  .btn-row { display: flex; gap: 10px; margin-top: 12px; }
+  button {
+    flex: 1;
+    padding: 12px 14px;
+    font-size: 15px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .btn-primary { background: var(--navy); color: #fff; }
+  .btn-primary:active { opacity: 0.85; }
+  .btn-secondary { background: #eef1f4; color: var(--navy); }
+  .result {
+    margin-top: 16px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 15px;
+    text-align: center;
+    display: none;
+  }
+  .result.correct { background: #e6f4ea; color: var(--green); display: block; }
+  .result.wrong { background: #fdecea; color: var(--red); display: block; }
+  .word-list-card { background: var(--card); border-radius: 14px; padding: 18px 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+  .word-list-card h3 { margin-top: 0; font-size: 15px; color: var(--navy); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--gray); font-weight: 600; font-size: 12px; }
+  .add-form { display: flex; gap: 6px; margin-top: 14px; flex-wrap: wrap; }
+  .add-form input { flex: 1; min-width: 90px; padding: 8px 10px; font-size: 14px; border: 1px solid var(--border); border-radius: 8px; }
+  .add-form button { flex: 0 0 auto; padding: 8px 14px; }
+  .del-btn { background: none; border: none; color: #bbb; cursor: pointer; font-size: 13px; padding: 2px 6px; }
+  .hint { font-size: 12px; color: var(--gray); margin-top: 10px; line-height: 1.6; }
+  .empty { text-align: center; color: var(--gray); font-size: 14px; padding: 30px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>日文單字測驗</h1>
+  <div class="sub">中文 ⇄ 平假名，隨機出題</div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tabQuiz" onclick="showTab('quiz')">測驗</button>
+    <button class="tab-btn" id="tabList" onclick="showTab('list')">單字庫管理</button>
+  </div>
+
+  <div id="quizPane">
+    <div class="card">
+      <div class="progress" id="progress">—</div>
+      <div class="stats">
+        <span>答對 <b id="correctCount">0</b></span>
+        <span class="wrong">答錯 <b id="wrongCount">0</b></span>
+      </div>
+      <div class="question-label" id="questionLabel">請輸入平假名</div>
+      <div class="question-text" id="questionText">—</div>
+      <input type="text" id="answerInput" placeholder="在這裡打答案，按 Enter 送出" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <div class="btn-row">
+        <button class="btn-primary" id="submitBtn">送出</button>
+        <button class="btn-secondary" id="nextBtn" style="display:none;">下一題</button>
+      </div>
+      <div class="result" id="resultBox"></div>
+    </div>
+    <div style="text-align:center;">
+      <button class="btn-secondary" style="max-width:200px;" onclick="reshuffleAll()">重新洗牌 / 重設本輪</button>
+    </div>
+  </div>
+
+  <div id="listPane" style="display:none;">
+    <div class="word-list-card">
+      <h3>新增單字</h3>
+      <div class="add-form">
+        <input type="text" id="newCn" placeholder="中文，例如：一定">
+        <input type="text" id="newKana" placeholder="平假名，例如：かならず">
+        <button class="btn-primary" onclick="addWord()">新增</button>
+      </div>
+      <div class="hint">新增後會直接存在這個瀏覽器裡（不用改程式碼），下次打開這個頁面也會留著，除非清除瀏覽器資料。</div>
+    </div>
+    <div class="word-list-card" style="margin-top:14px;">
+      <h3>目前單字庫（<span id="wordTotal">0</span> 筆）</h3>
+      <table>
+        <thead><tr><th>中文</th><th>平假名</th><th></th></tr></thead>
+        <tbody id="wordTableBody"></tbody>
+      </table>
+      <div class="hint" id="emptyHint" style="display:none;">目前沒有單字，先在上面新增，或往下看「內建範例」段落。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- 預設範例（第一次開啟時會自動載入；之後新增的單字都存在瀏覽器 localStorage，不會被這裡的預設值覆蓋） ----------
+const DEFAULT_WORDS = [
+  { cn: "一定、務必", kana: "かならず" },
+  { cn: "做不到、沒辦法", kana: "むり" },
+  { cn: "所以（それで）", kana: "それで" },
+  { cn: "而且（それに）", kana: "それに" },
+  { cn: "或者（それとも）", kana: "それとも" },
+  { cn: "然後（それから）", kana: "それから" }
+];
+
+const STORAGE_KEY = "nihongo_quiz_words_v1";
+
+function loadWords() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) {
+    try { return JSON.parse(raw); } catch (e) { /* fall through */ }
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_WORDS));
+  return DEFAULT_WORDS.slice();
+}
+function saveWords(words) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(words));
+}
+
+let words = loadWords();
+let queue = [];
+let current = null;
+let correctCount = 0;
+let wrongCount = 0;
+let answered = false;
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function buildQueue() {
+  queue = shuffle(words).map(w => ({
+    ...w,
+    dir: Math.random() < 0.5 ? "cn2kana" : "kana2cn"
+  }));
+}
+
+function updateProgress() {
+  const total = words.length;
+  const remaining = queue.length + (current ? 1 : 0);
+  const done = total - remaining;
+  document.getElementById("progress").textContent =
+    total === 0 ? "單字庫是空的，先到「單字庫管理」新增幾個字" : `本輪第 ${done + 1} / ${total} 題`;
+  document.getElementById("correctCount").textContent = correctCount;
+  document.getElementById("wrongCount").textContent = wrongCount;
+}
+
+function nextQuestion() {
+  if (words.length === 0) {
+    document.getElementById("questionText").textContent = "—";
+    document.getElementById("questionLabel").textContent = "尚無單字";
+    document.getElementById("answerInput").disabled = true;
+    document.getElementById("submitBtn").style.display = "none";
+    document.getElementById("nextBtn").style.display = "none";
+    updateProgress();
+    return;
+  }
+  if (queue.length === 0) buildQueue();
+  current = queue.shift();
+  answered = false;
+  document.getElementById("answerInput").disabled = false;
+  document.getElementById("answerInput").value = "";
+  document.getElementById("submitBtn").style.display = "block";
+  document.getElementById("nextBtn").style.display = "none";
+  document.getElementById("resultBox").style.display = "none";
+  document.getElementById("resultBox").className = "result";
+
+  if (current.dir === "cn2kana") {
+    document.getElementById("questionLabel").textContent = "看中文，打出平假名";
+    document.getElementById("questionText").textContent = current.cn;
+  } else {
+    document.getElementById("questionLabel").textContent = "看平假名，打出中文";
+    document.getElementById("questionText").textContent = current.kana;
+  }
+  updateProgress();
+  document.getElementById("answerInput").focus();
+}
+
+function submitAnswer() {
+  if (answered || !current) return;
+  answered = true;
+  const userAns = document.getElementById("answerInput").value.trim();
+  const correctAns = current.dir === "cn2kana" ? current.kana : current.cn;
+  const isCorrect = userAns !== "" && userAns === correctAns.trim();
+  const box = document.getElementById("resultBox");
+  if (isCorrect) {
+    correctCount++;
+    box.textContent = "✅ 正確！";
+    box.className = "result correct";
+  } else {
+    wrongCount++;
+    box.textContent = "❌ 錯誤，正確答案：" + correctAns;
+    box.className = "result wrong";
+  }
+  document.getElementById("answerInput").disabled = true;
+  document.getElementById("submitBtn").style.display = "none";
+  document.getElementById("nextBtn").style.display = "block";
+  updateProgress();
+  document.getElementById("nextBtn").focus();
+}
+
+function reshuffleAll() {
+  correctCount = 0;
+  wrongCount = 0;
+  current = null;
+  buildQueue();
+  nextQuestion();
+}
+
+function renderWordTable() {
+  const body = document.getElementById("wordTableBody");
+  body.innerHTML = "";
+  document.getElementById("wordTotal").textContent = words.length;
+  document.getElementById("emptyHint").style.display = words.length === 0 ? "block" : "none";
+  words.forEach((w, idx) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${escapeHtml(w.cn)}</td><td>${escapeHtml(w.kana)}</td>
+      <td><button class="del-btn" onclick="deleteWord(${idx})">刪除</button></td>`;
+    body.appendChild(tr);
+  });
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
+}
+function addWord() {
+  const cn = document.getElementById("newCn").value.trim();
+  const kana = document.getElementById("newKana").value.trim();
+  if (!cn || !kana) { alert("中文和平假名都要填喔"); return; }
+  words.push({ cn, kana });
+  saveWords(words);
+  document.getElementById("newCn").value = "";
+  document.getElementById("newKana").value = "";
+  renderWordTable();
+  buildQueue();
+  if (!current) nextQuestion();
+  updateProgress();
+}
+function deleteWord(idx) {
+  words.splice(idx, 1);
+  saveWords(words);
+  renderWordTable();
+  buildQueue();
+  updateProgress();
+}
+
+function showTab(tab) {
+  const quiz = tab === "quiz";
+  document.getElementById("quizPane").style.display = quiz ? "block" : "none";
+  document.getElementById("listPane").style.display = quiz ? "none" : "block";
+  document.getElementById("tabQuiz").classList.toggle("active", quiz);
+  document.getElementById("tabList").classList.toggle("active", !quiz);
+  if (!quiz) renderWordTable();
+}
+
+document.getElementById("submitBtn").addEventListener("click", submitAnswer);
+document.getElementById("nextBtn").addEventListener("click", nextQuestion);
+document.getElementById("answerInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    if (!answered) submitAnswer(); else nextQuestion();
+  }
+});
+
+buildQueue();
+nextQuestion();
+renderWordTable();
+</script>
+</body>
+</html>
